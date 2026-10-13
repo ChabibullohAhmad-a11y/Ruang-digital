@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { ARCADES, BALCONY, BALCONY_DOOR, BALCONY_TABLE, BATHROOM, BEANBAGS, CARROM, COFFEE_TABLE, ENTRANCE_X, FLAG, FLOOR_HEIGHT, type Floor as FloorNumber, GAME_DOOR, GAME_ROOM, GAME_TV, HAMMOCK, LESEHAN_TABLE, LOUNGE_PARTITION_END_Z, MEETING_TABLE, PARTITION_X, PING_PONG, SOFA, STAIRS, STALL_ROTATION, type OfficeLayout, TV, type Vec3 } from '../office3d-layout.ts'
-import { AcOutdoorUnit, AirConditioner, ArcadeCabinet, Armchair, BathroomFittings, Beanbag, Bed, Bookshelf, CarromTable, ClothesLine, CoffeeTable, FlagPole, FloorCushion, Fridge, GalonDispenser, Gerobak, Hammock, KopiSepeda, LowTable, MeetingTable, Nightstand, OfficeLight, PantryCounter, PingPongTable, Plant, Railing, RattanChair, RBox, SideTable, Sofa, Staircase, StreetLamp, StringLights, Television, Tree, Vendor, WallClock, Wardrobe, WaterTank } from './props.tsx'
+import { ARCADES, BALCONY, BALCONY_DOOR, BALCONY_TABLE, BATHROOM, BEANBAGS, CARROM, COFFEE_TABLE, ENTRANCE_X, FLAG, FLOOR_HEIGHT, type Floor as FloorNumber, GAME_DOOR, GAME_ROOM, GAME_TV, HAMMOCK, LESEHAN_TABLE, LOUNGE_PARTITION_END_Z, MEETING_DOOR_X, PARTITION_X, PING_PONG, SOFA, STAIRS, STALL_ROTATION, type OfficeLayout, TV, type Vec3 } from '../office3d-layout.ts'
+import { AcOutdoorUnit, AirConditioner, ArcadeCabinet, Armchair, BathroomFittings, Beanbag, Bed, Bookshelf, CarromTable, ClothesLine, CoffeeTable, FlagPole, FloorCushion, Fridge, GalonDispenser, Gerobak, Hammock, KopiSepeda, LongTable, LowTable, Nightstand, OfficeChair, OfficeLight, PantryCounter, PingPongTable, Plant, Railing, RattanChair, RBox, SideTable, Sofa, Staircase, StreetLamp, StringLights, Television, Tree, Vendor, WallClock, Wardrobe, WaterTank, Whiteboard } from './props.tsx'
 import { asphalt, carpet, grass, pavingStones, tileFloor, woodFloor } from './textures.ts'
 
 // The building (floors, walls, windows, furniture) and its surroundings (yard, sidewalk,
@@ -78,7 +78,7 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <Floor position={[(minX + maxX) / 2, 0.005, (minZ + maxZ) / 2]} size={[maxX - minX, maxZ - minZ]} map={wood} roughness={0.55}/>
     <Floor position={[8.35, 0.01, 1.4]} size={[2.3, 5.4]} map={tiles} roughness={0.35}/>
     <Floor position={[4.6, 0.012, -2.9]} size={[4.4, 2.8]} map={rug}/>
-    <Floor position={[-5.2, 0.012, 2.2]} size={[3.6, 3]} map={meetingRug}/>
+    <Floor position={[(layout.meetingRoom.minX + layout.meetingRoom.maxX) / 2, 0.012, (layout.meetingRoom.minZ + layout.meetingRoom.maxZ) / 2]} size={[layout.meetingRoom.maxX - layout.meetingRoom.minX - 0.3, layout.meetingRoom.maxZ - layout.meetingRoom.minZ - 0.3]} map={meetingRug}/>
     {/* Full-height back and left walls, low walls towards the camera */}
     <Wall from={[minX, minZ]} to={[maxX, minZ]}/>
     <Wall from={[minX, minZ]} to={[minX, maxZ]}/>
@@ -92,15 +92,13 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <Glass x={PARTITION_X} fromZ={minZ} toZ={LOUNGE_PARTITION_END_Z} bottom={0.9}/>
     <Wall from={[minX, maxZ]} to={[4.9, maxZ]} height={0.55}/>
     <Wall from={[6.7, maxZ]} to={[maxX, maxZ]} height={0.55}/>
-    {/* Glass-topped half wall around the meeting area and a planter row by the lounge */}
-    <Wall from={[-3.2, 1]} to={[-3.2, maxZ]} height={0.9}/>
-    <RBox position={[-3.2, 1.35, 2.6]} size={[0.06, 0.9, 3.2]} radius={0.01} color="#cfe8ee" opacity={0.3} roughness={0.05}/>
+    {/* Meeting room: glass-topped half walls with a door by the aisle, and a planter row by the lounge */}
+    <MeetingRoom layout={layout} night={night}/>
     {[1.3, 2.3, 3.3].map((z) => <Plant key={z} position={[0.9, 0, z]} size={0.8}/>)}
     {/* Windows on the back and left walls */}
     {[-7, -3.6, 1.4, 6.6].map((x) => <Window key={x} position={[x, 1.55, minZ + 0.14]} night={night}/>)}
-    {[-3, 0.6].map((z) => <group key={z} rotation={[0, Math.PI / 2, 0]} position={[minX + 0.14, 1.55, z]}><Window position={[0, 0, 0]} width={1.6} night={night}/></group>)}
+    {[-3].map((z) => <group key={z} rotation={[0, Math.PI / 2, 0]} position={[minX + 0.14, 1.55, z]}><Window position={[0, 0, 0]} width={1.6} night={night}/></group>)}
     {/* Workspace */}
-    <MeetingTable position={MEETING_TABLE}/>
     <Bookshelf position={[minX + 0.35, 0, -0.9]} rotation={Math.PI / 2}/>
     <Plant position={[minX + 0.5, 0, -4.6]}/>
     <Plant position={[-0.4, 0, -4.7]} size={0.9}/>
@@ -123,9 +121,48 @@ function Building({ night, layout }: { night: boolean; layout: OfficeLayout }) {
     <AirConditioner position={[TV[0], 2.3, minZ + 0.125]}/>
     <AirConditioner position={[minX + 0.125, 2.3, 2.6]} rotation={Math.PI / 2}/>
     {/* Office lights: suspended cool-white LED bars */}
-    {[...layout.desks.map(([x, , z]): Vec3 => [x, 2.4, z + 0.2]), [MEETING_TABLE[0], 2.3, MEETING_TABLE[2]] as Vec3, [COFFEE_TABLE[0], 2.4, COFFEE_TABLE[2] + 0.4] as Vec3, [8.2, 2.4, 1.2] as Vec3].map((position) => <OfficeLight key={position.join(',')} position={position} night={night}/>)}
+    {[...layout.desks.map(([x, , z]): Vec3 => [x, 2.4, z + 0.2]),  [(layout.meetingRoom.table.x1 + layout.meetingRoom.table.x2) / 2, 2.4, layout.meetingRoom.table.z] as Vec3, [COFFEE_TABLE[0], 2.4, COFFEE_TABLE[2] + 0.4] as Vec3, [8.2, 2.4, 1.2] as Vec3].map((position) => <OfficeLight key={position.join(',')} position={position} night={night}/>)}
     <Stairs/>
     <GameRoom night={night}/>
+  </group>
+}
+
+/** A glass pane along z = const, from `bottom` to near the top of the walls. */
+function GlassAlongX({ z, fromX, toX, bottom }: { z: number; fromX: number; toX: number; bottom: number }) {
+  const top = WALL_HEIGHT - 0.2
+  return <RBox position={[(fromX + toX) / 2, (bottom + top) / 2, z]} size={[Math.abs(toX - fromX), top - bottom, 0.05]} radius={0.01} color="#cfe8ee" opacity={0.25} roughness={0.05} shadow={false}/>
+}
+
+/** The meeting room: long table and chairs, a TV showing a slide on the left wall, a whiteboard. */
+function MeetingRoom({ layout, night }: { layout: OfficeLayout; night: boolean }) {
+  const { minX, maxX, minZ, maxZ, table, tv, whiteboard, seats } = layout.meetingRoom
+  const door = { from: MEETING_DOOR_X - 0.45, to: MEETING_DOOR_X + 0.45 }
+  const chairs = seats.filter((seat) => seat.seated)
+  return <group>
+    {/* Right wall towards the lounge side, and the aisle-side wall with its door */}
+    <Wall from={[maxX, minZ]} to={[maxX, maxZ]} height={0.9}/>
+    <Glass x={maxX} fromZ={minZ} toZ={maxZ} bottom={0.9}/>
+    {/* Its own left wall when the room is narrower than the building */}
+    {minX > layout.building.minX + 0.1 && <><Wall from={[minX, minZ]} to={[minX, maxZ]} height={0.9}/><Glass x={minX} fromZ={minZ} toZ={maxZ} bottom={0.9}/></>}
+    <Wall from={[minX, minZ]} to={[door.from, minZ]} height={0.9}/>
+    <Wall from={[door.to, minZ]} to={[maxX, minZ]} height={0.9}/>
+    <GlassAlongX z={minZ} fromX={minX} toX={door.from} bottom={0.9}/>
+    <GlassAlongX z={minZ} fromX={door.to} toX={maxX} bottom={0.9}/>
+    <RBox position={[MEETING_DOOR_X, WALL_HEIGHT - 0.15, minZ]} size={[0.95, 0.1, 0.12]} radius={0.02} color={WALL_TOP}/>
+    <LongTable position={[(table.x1 + table.x2) / 2, 0, table.z]} length={table.x2 - table.x1}/>
+    {chairs.map(({ position: [x, , z], facing }) => <OfficeChair key={`${x},${z}`} position={[x, 0, z]} rotation={facing}/>)}
+    {/* TV on a stand at the table's left end, showing a slide */}
+    <group position={[tv[0], 0, tv[2]]} rotation={[0, Math.PI / 2, 0]}>
+      <RBox position={[0, 0.03, 0]} size={[0.9, 0.05, 0.5]} radius={0.02} color="#2a2f33"/>
+      <RBox position={[0, 0.75, -0.08]} size={[0.1, 1.45, 0.08]} radius={0.02} color="#3a3f44" metalness={0.5}/>
+      <group position={[0, 1.45, 0]}>
+      <Television position={[0, 0, 0]}/>
+      <RBox position={[0, 0.36, 0.05]} size={[1.6, 0.14, 0.004]} radius={0.004} color="#f4f1ea" emissive="#f4f1ea" emissiveIntensity={night ? 0.8 : 0.3} shadow={false}/>
+      {[0.25, 0.45, 0.32, 0.6].map((height, index) => <RBox key={index} position={[-0.45 + index * 0.3, -0.38 + height / 2, 0.05]} size={[0.18, height, 0.004]} radius={0.004} color={['#e9c46a', '#2a9d8f', '#e76f51', '#8fd18a'][index]} emissive={['#e9c46a', '#2a9d8f', '#e76f51', '#8fd18a'][index]} emissiveIntensity={night ? 0.7 : 0.25} shadow={false}/>)}
+      </group>
+    </group>
+    <Whiteboard position={whiteboard} rotation={-Math.PI / 2}/>
+    <Plant position={[maxX - 0.4, 0, maxZ - 0.45]} size={0.8}/>
   </group>
 }
 
