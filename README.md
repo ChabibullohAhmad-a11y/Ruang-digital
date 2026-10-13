@@ -246,3 +246,7 @@ The Hermes root follows Hermes's own rules (`HERMES_HOME`, default `~/.hermes`);
 - Text previews are capped at 256 KB and pass through the same secret redaction as logs. Binary files are not previewed.
 
 **Troubleshooting "This folder could not be read".** Ruang reads folders as the user that runs it. If a profile folder belongs to another user or has mode `700` (for example it was created by a gateway started with `sudo`/systemd as root), the card shows "No read permission for <user>" and opening it explains which user was refused. Check with `ls -ld ~/.hermes/profiles/<name>`. Fix it by giving the folder back to your user (`sudo chown -R $USER:$USER ~/.hermes/profiles/<name>`) or granting read access (`sudo setfacl -R -m u:$USER:rX ~/.hermes/profiles/<name>`).
+
+## License
+
+[MIT](LICENSE) © yugienugraha. Contributions are accepted under the same license.
