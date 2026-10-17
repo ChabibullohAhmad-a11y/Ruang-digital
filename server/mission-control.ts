@@ -457,6 +457,8 @@ async function systemRun(file: string, args: string[], options: RunOptions = {})
     const { stdout } = await execFile(file, args, {
       timeout: COMMAND_TIMEOUT_MS,
       maxBuffer: 16 * 1024 * 1024,
+      // Windows ships the CLIs as .cmd shims, which cannot be spawned directly; a shell is required.
+      shell: process.platform === 'win32',
       env: { ...process.env, NO_COLOR: '1', TERM: 'dumb', COLUMNS: '200', PYTHONIOENCODING: 'utf-8' },
     })
     recordCommand({ command, ok: true, durationMs: Date.now() - started, at: new Date(started).toISOString() })
@@ -819,12 +821,12 @@ export async function collectAgentActivity(profiles: readonly string[], run: Run
 // Office
 
 /** One office station per agent: every Hermes profile, plus OpenCode when it is installed. */
-interface AgentSpec { id: string; role: string; profile?: string; gateway?: GatewayState; aliases: string[] }
+interface AgentSpec { id: string; name?: string; role: string; profile?: string; gateway?: GatewayState; aliases: string[] }
 
 export function agentRoster(runtime: RuntimeSnapshot): AgentSpec[] {
   const profiles = runtime.profiles.availability === 'available' ? runtime.profiles.data : []
   const agents: AgentSpec[] = profiles.filter((profile) => PROFILE_NAME.test(profile.name)).map((profile) => ({ id: profile.name, role: 'Hermes profile', profile: profile.name, gateway: profile.gateway, aliases: [profile.name.toLowerCase()] }))
-  if (runtime.openCode.availability === 'available' && !agents.some((agent) => agent.id === 'opencode')) agents.push({ id: 'opencode', role: 'OpenCode', aliases: ['opencode', 'open-code'] })
+  if (runtime.openCode.availability === 'available' && !agents.some((agent) => agent.id === 'opencode')) agents.push({ id: 'opencode', name: 'Tomy-Opencode', role: 'OpenCode', aliases: ['opencode', 'open-code'] })
   return agents
 }
 
@@ -935,7 +937,7 @@ export function buildOfficeSnapshot(runtime: RuntimeSnapshot, board: TaskBoardSn
     const liveProvenance = options.agentActivity ? `; live activity (${agent.profile ? `hermes -p ${agent.profile} logs/sessions` : 'agent logs mentioning OpenCode'}, last ${ACTIVITY_WINDOW}): ${!agentActivity || !live.known ? 'unavailable' : live.state !== 'Unknown' ? live.probe?.kind ?? 'active' : 'none'}` : ''
     return {
       id: agent.id,
-      name: agent.id,
+      name: agent.name ?? agent.id,
       role: agent.role,
       ...roomForState(state, index),
       seat: index + 1,

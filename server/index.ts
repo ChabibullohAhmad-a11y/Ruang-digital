@@ -10,6 +10,10 @@ import { API_VERSION } from './api-version.js'
 import { collectMemory } from './memory.js'
 import { getActivity, getCalendar, getChannels, getCommandLog, getDashboard, getKnowledge, getLogs, getOffice, getSnapshot, getTaskBoard, getTaskDetail, getUsage } from './mission-control.js'
 
+// Load a local .env (if present) before any setting is read. A variable already set in the real
+// environment always wins over the file, so deployment variables are never overridden.
+try { process.loadEnvFile() } catch { /* no .env beside the working directory */ }
+
 const HOST = '127.0.0.1'
 // MISSION_CONTROL_PORT is the pre-rename name, still honoured.
 const PORT = Number(process.env.RUANG_PORT ?? process.env.MISSION_CONTROL_PORT) || 3001
